@@ -1,6 +1,8 @@
 extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 
+mod parser;
+
 use rustyline::error::ReadlineError;
 
 fn main() {
