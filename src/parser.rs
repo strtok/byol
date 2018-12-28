@@ -13,8 +13,11 @@ enum ParseValue {
     Char(char)
 }
 
-pub fn one_char(_c: char) -> impl Fn(&str) -> Result<ParseResult<char>, ParseError> {
-    |_s: &str| Ok(ParseResult { value: 'a' })
+pub fn satisfy(_predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> Result<ParseResult<ParseValue>, ParseError>
+{
+    |_s: &str| {
+        Ok(ParseResult {value: ParseValue::Char('b')})
+    }
 }
 
 #[cfg(test)]
@@ -22,10 +25,13 @@ mod tests {
     use crate::parser;
 
     #[test]
-    fn one_char() {
-        let f = parser::one_char('a');
+    fn satisfy() {
+        let f = parser::satisfy(|_c: char| {true});
         let result = f("abc").unwrap();
-        assert_eq!(result.value, 'a');
+        match result.value {
+            parser::ParseValue::Char(c) => assert_eq!(c, 'a'),
+            _ => panic!("fail")
+        }
     }
 
 }
