@@ -1,7 +1,8 @@
 
-struct ParseResult<T> {
-    value: T
+struct ParseResult {
+    value: ParseValue
 }
+
 
 #[derive(Debug)]
 struct ParseError {
@@ -10,11 +11,12 @@ struct ParseError {
 
 enum ParseValue {
     String(String),
-    Char(char)
+    Char(char),
+    Cons(Box<ParseValue>, Box<ParseValue>),
+    Nil
 }
 
-pub fn satisfy(_predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> Result<ParseResult<ParseValue>, ParseError>
-{
+pub fn satisfy(_predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> Result<ParseResult, ParseError> {
     |_s: &str| {
         Ok(ParseResult {value: ParseValue::Char('b')})
     }
