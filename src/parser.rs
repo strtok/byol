@@ -1,3 +1,4 @@
+use regex::Regex;
 
 enum ParseResult<'a> {
     Value { value: ParseValue, remaining_input: &'a str},
@@ -51,6 +52,13 @@ pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult
     }
 }
 
+pub fn regex(regex: &str) -> impl Fn(&str) -> ParseResult {
+    let re = Regex::new(regex).unwrap();
+    satisfy(move |c: char| {
+        return re.is_match(&c.to_string());
+    })
+}
+
 pub fn digit() -> impl Fn(&str) -> ParseResult {
     satisfy(|c: char| {
         c.is_digit(10)
@@ -99,5 +107,12 @@ mod tests {
     fn digit() {
         assert!(parser::digit()("1").is_ok());
         assert!(parser::digit()("A").is_empty());
+    }
+
+    #[test]
+    fn regex() {
+        assert!(parser::regex("[a-z]")("123").is_empty());
+        assert!(parser::regex("[a-z]")("a23").is_ok());
+        assert!(parser::regex("[\\s]")("\t").is_ok());
     }
 }
