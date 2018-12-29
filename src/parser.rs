@@ -11,7 +11,6 @@ struct ParseError {
 
 enum ParseValue {
     String(String),
-    Char(char),
     Cons(Box<ParseValue>, Box<ParseValue>),
     Nil
 }
@@ -21,10 +20,10 @@ pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> Result<Pars
         if s.is_empty() {
             return Err(ParseError{text: String::from("no remaining input")});
         }
-        let c = s.chars().next().unwrap();
-        if predicate(c) {
+        let c = &s[0..1];
+        if predicate(c.chars().next().unwrap()) {
             Ok(ParseResult {
-                value: ParseValue::Char(c),
+                value: ParseValue::String(c.to_string()),
                 remaining_input: &s[1..]
             })
         } else {
@@ -60,8 +59,8 @@ mod tests {
         let f = parser::satisfy(|_c| { true });
         let result = f("abc").unwrap();
         match result.value {
-            parser::ParseValue::Char(c) => {
-                assert_eq!(c, 'a');
+            parser::ParseValue::String(c) => {
+                assert_eq!(c, "a");
                 assert_eq!(result.remaining_input, "bc");
             },
             _ => panic!("fail")
