@@ -18,28 +18,36 @@ enum ParseValue {
 
 pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> Result<ParseResult, ParseError> {
     move |s: &str| {
-        match s.len() {
-            0 => Err(ParseError{text: String::from("no remaining input")}),
-            _ => {
-                let c = s.chars().next().unwrap();
-                if predicate(c) {
-                    Ok(ParseResult {
-                        value: ParseValue::Char(c),
-                        remaining_input: &s[1..]
-                    })
-                } else {
-                    Err(ParseError{text: format!("'{}' did not match predicate", c)})
-                }
-
-            }
-
+        if s.is_empty() {
+            return Err(ParseError{text: String::from("no remaining input")});
+        }
+        let c = s.chars().next().unwrap();
+        if predicate(c) {
+            Ok(ParseResult {
+                value: ParseValue::Char(c),
+                remaining_input: &s[1..]
+            })
+        } else {
+            Err(ParseError{text: format!("'{}' did not match predicate", c)})
         }
     }
 }
 
-pub fn is_digit() -> impl Fn(&str) -> Result<ParseResult, ParseError> {
+pub fn digit() -> impl Fn(&str) -> Result<ParseResult, ParseError> {
     satisfy(|c: char| {
         c.is_digit(10)
+    })
+}
+
+pub fn alphanumeric() -> impl Fn(&str) -> Result<ParseResult, ParseError> {
+    satisfy(|c: char| {
+        c.is_alphanumeric()
+    })
+}
+
+pub fn alphabetic() -> impl Fn(&str) -> Result<ParseResult, ParseError> {
+    satisfy(|c: char| {
+        c.is_alphabetic()
     })
 }
 
@@ -69,8 +77,8 @@ mod tests {
 
     #[test]
     fn is_digit() {
-        assert!(parser::is_digit()("1").is_ok());
-        assert!(parser::is_digit()("A").is_err());
+        assert!(parser::digit()("1").is_ok());
+        assert!(parser::digit()("A").is_err());
     }
 
 }
