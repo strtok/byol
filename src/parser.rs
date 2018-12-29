@@ -35,6 +35,12 @@ enum ParseValue {
     Nil
 }
 
+pub fn succeed() -> impl Fn(&str) -> ParseResult {
+    |_: &str| {
+        ParseResult::Empty
+    }
+}
+
 pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult {
     move |s: &str| {
         if s.is_empty() {
@@ -80,6 +86,11 @@ pub fn alphabetic() -> impl Fn(&str) -> ParseResult {
 #[cfg(test)]
 mod tests {
     use crate::parser;
+
+    #[test]
+    fn succeed() {
+        assert!(parser::succeed()("123").is_empty());
+    }
 
     #[test]
     fn satisfy() {
