@@ -31,8 +31,18 @@ impl<'a> ParseResult<'a> {
 
 enum ParseValue {
     String(String),
-    Cons(Box<ParseValue>, Box<ParseValue>),
+    List(Vec<ParseValue>),
     Nil
+}
+
+impl ParseValue {
+    pub fn string(&self) -> &str {
+        if let ParseValue::String(s) = self {
+            return &s;
+        } else {
+            panic!("unexpected type");
+        }
+    }
 }
 
 pub fn succeed() -> impl Fn(&str) -> ParseResult {
@@ -42,15 +52,15 @@ pub fn succeed() -> impl Fn(&str) -> ParseResult {
 }
 
 pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult {
-    move |s: &str| {
-        if s.is_empty() {
+    move |input: &str| {
+        if input.is_empty() {
             return ParseResult::Empty;
         }
-        let c = &s[0..1];
+        let c = &input[0..1];
         if predicate(c.chars().next().unwrap()) {
             ParseResult::Value {
                 value: ParseValue::String(c.to_string()),
-                remaining_input: &s[1..]
+                remaining_input: &input[1..]
             }
         } else {
             ParseResult::Empty
@@ -81,6 +91,30 @@ pub fn alphabetic() -> impl Fn(&str) -> ParseResult {
     satisfy(|c: char| {
         c.is_alphabetic()
     })
+}
+
+pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+    move |input: &str| {
+        let mut remaining = input;
+        let mut list: Vec<ParseValue> = Vec::new();
+        loop {
+            match parser(remaining) {
+                ParseResult::Value{value, remaining_input} => {
+                    list.push(value);
+                    remaining = remaining_input;
+                },
+                ParseResult::Empty => {
+                    if list.is_empty() {
+                        return ParseResult::Empty;
+                    }
+                    return ParseResult::Value {value: ParseValue::List(list), remaining_input: remaining };
+                },
+                result => {
+                    return result;
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -125,5 +159,23 @@ mod tests {
         assert!(parser::regex("[a-z]")("123").is_empty());
         assert!(parser::regex("[a-z]")("a23").is_ok());
         assert!(parser::regex("[\\s]")("\t").is_ok());
+    }
+
+    #[test]
+    fn repeat() {
+        let f = parser::repeat(parser::digit());
+        let result = f("12345abc");
+
+        if let parser::ParseResult::Value{value, remaining_input} = result {
+            assert_eq!(remaining_input, "abc");
+            if let parser::ParseValue::List(list) = value {
+                assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
+                           vec!("1", "2", "3", "4", "5"));
+            } else {
+                panic!();
+            }
+        } else {
+            panic!();
+        }
     }
 }
