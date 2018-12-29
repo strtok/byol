@@ -178,4 +178,10 @@ mod tests {
             panic!();
         }
     }
+
+    #[test]
+    fn repeat_empty() {
+        let f = parser::repeat(parser::digit());
+        assert!(f("abc").is_empty());
+    }
 }
