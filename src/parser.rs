@@ -28,11 +28,6 @@ impl<'a> ParseResult<'a> {
     }
 }
 
-#[derive(Debug)]
-struct ParseError {
-    text: String
-}
-
 enum ParseValue {
     String(String),
     Cons(Box<ParseValue>, Box<ParseValue>),
@@ -82,7 +77,7 @@ mod tests {
     fn satisfy() {
         let f = parser::satisfy(|_c| { true });
 
-        if let parser::ParseResult::Value {value, remaining_input} = f("abc") {
+        if let parser::ParseResult::Value { value, remaining_input } = f("abc") {
             if let parser::ParseValue::String(str) = value {
                 assert_eq!(str, "a");
                 assert_eq!(remaining_input, "bc");
