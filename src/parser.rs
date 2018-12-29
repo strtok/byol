@@ -7,22 +7,22 @@ enum ParseResult<'a> {
 
 impl<'a> ParseResult<'a> {
     pub fn is_ok(&self) -> bool {
-        match self {
-            ParseValue => true,
+        match *self {
+            ParseResult::Value {..} => true,
             _ => false
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        match self {
-            Empty => true,
+        match *self {
+            ParseResult::Empty => true,
             _ => false
         }
     }
 
     pub fn is_error(&self) -> bool {
-        match self {
-            Error => true,
+        match *self {
+            ParseResult::Error {..} => true,
             _ => false
         }
     }
