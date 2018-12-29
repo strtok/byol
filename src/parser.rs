@@ -1,8 +1,8 @@
 
-struct ParseResult {
-    value: ParseValue
+struct ParseResult<'a> {
+    value: ParseValue,
+    remaining_input: &'a str
 }
-
 
 #[derive(Debug)]
 struct ParseError {
@@ -17,8 +17,15 @@ enum ParseValue {
 }
 
 pub fn satisfy(_predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> Result<ParseResult, ParseError> {
-    |_s: &str| {
-        Ok(ParseResult {value: ParseValue::Char('b')})
+    |s: &str| {
+        match s.len() {
+            0 => Err(ParseError{text: String::from("no remaining input")}),
+            _ => Ok(ParseResult {
+                value: ParseValue::Char(s.chars().next().unwrap()),
+                remaining_input: &s[1..]
+            })
+
+        }
     }
 }
 
@@ -31,9 +38,18 @@ mod tests {
         let f = parser::satisfy(|_c: char| {true});
         let result = f("abc").unwrap();
         match result.value {
-            parser::ParseValue::Char(c) => assert_eq!(c, 'a'),
+            parser::ParseValue::Char(c) => {
+                assert_eq!(c, 'a');
+                assert_eq!(result.remaining_input, "bc");
+            },
             _ => panic!("fail")
         }
+    }
+
+    #[test]
+    fn satisfy_no_input() {
+        let f = parser::satisfy(|_c: char| {true});
+        assert!(f("").is_err());
     }
 
 }
