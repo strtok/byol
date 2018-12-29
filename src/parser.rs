@@ -75,7 +75,7 @@ mod tests {
 
 
     #[test]
-    fn is_digit() {
+    fn digit() {
         assert!(parser::digit()("1").is_ok());
         assert!(parser::digit()("A").is_err());
     }
