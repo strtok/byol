@@ -117,6 +117,18 @@ pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRes
     }
 }
 
+pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+    let repeat_parser = repeat(parser);
+    move |input: &str| {
+        match repeat_parser(input) {
+            ParseResult::Empty => {
+                ParseResult::Error{text: "expected at least one value".to_string()}
+            },
+            result => result
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::parser;
@@ -183,5 +195,29 @@ mod tests {
     fn repeat_empty() {
         let f = parser::repeat(parser::digit());
         assert!(f("abc").is_empty());
+    }
+
+    #[test]
+    fn repeat1() {
+        let f = parser::repeat1(parser::digit());
+        let result = f("12345abc");
+
+        if let parser::ParseResult::Value{value, remaining_input} = result {
+            assert_eq!(remaining_input, "abc");
+            if let parser::ParseValue::List(list) = value {
+                assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
+                           vec!("1", "2", "3", "4", "5"));
+            } else {
+                panic!();
+            }
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn repeat1_errors_when_empty() {
+        let f = parser::repeat1(parser::digit());
+        assert!(f("abc").is_error());
     }
 }
