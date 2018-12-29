@@ -1,7 +1,31 @@
 
-struct ParseResult<'a> {
-    value: ParseValue,
-    remaining_input: &'a str
+enum ParseResult<'a> {
+    Value { value: ParseValue, remaining_input: &'a str},
+    Empty,
+    Error { text: String }
+}
+
+impl<'a> ParseResult<'a> {
+    pub fn is_ok(&self) -> bool {
+        match self {
+            ParseValue => true,
+            _ => false
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Empty => true,
+            _ => false
+        }
+    }
+
+    pub fn is_error(&self) -> bool {
+        match self {
+            Error => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -15,36 +39,36 @@ enum ParseValue {
     Nil
 }
 
-pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> Result<ParseResult, ParseError> {
+pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult {
     move |s: &str| {
         if s.is_empty() {
-            return Err(ParseError{text: String::from("no remaining input")});
+            return ParseResult::Empty;
         }
         let c = &s[0..1];
         if predicate(c.chars().next().unwrap()) {
-            Ok(ParseResult {
+            ParseResult::Value {
                 value: ParseValue::String(c.to_string()),
                 remaining_input: &s[1..]
-            })
+            }
         } else {
-            Err(ParseError{text: format!("'{}' did not match predicate", c)})
+            ParseResult::Empty
         }
     }
 }
 
-pub fn digit() -> impl Fn(&str) -> Result<ParseResult, ParseError> {
+pub fn digit() -> impl Fn(&str) -> ParseResult {
     satisfy(|c: char| {
         c.is_digit(10)
     })
 }
 
-pub fn alphanumeric() -> impl Fn(&str) -> Result<ParseResult, ParseError> {
+pub fn alphanumeric() -> impl Fn(&str) -> ParseResult {
     satisfy(|c: char| {
         c.is_alphanumeric()
     })
 }
 
-pub fn alphabetic() -> impl Fn(&str) -> Result<ParseResult, ParseError> {
+pub fn alphabetic() -> impl Fn(&str) -> ParseResult {
     satisfy(|c: char| {
         c.is_alphabetic()
     })
@@ -57,27 +81,28 @@ mod tests {
     #[test]
     fn satisfy() {
         let f = parser::satisfy(|_c| { true });
-        let result = f("abc").unwrap();
-        match result.value {
-            parser::ParseValue::String(c) => {
-                assert_eq!(c, "a");
-                assert_eq!(result.remaining_input, "bc");
-            },
-            _ => panic!("fail")
+
+        if let parser::ParseResult::Value {value, remaining_input} = f("abc") {
+            if let parser::ParseValue::String(str) = value {
+                assert_eq!(str, "a");
+                assert_eq!(remaining_input, "bc");
+                return;
+            }
         }
+
+        panic!("fail");
     }
 
     #[test]
     fn satisfy_no_input() {
         let f = parser::satisfy(|_c: char| {true});
-        assert!(f("").is_err());
+        assert!(f("").is_empty());
     }
 
 
     #[test]
     fn digit() {
         assert!(parser::digit()("1").is_ok());
-        assert!(parser::digit()("A").is_err());
+        assert!(parser::digit()("A").is_empty());
     }
-
 }
