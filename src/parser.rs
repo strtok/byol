@@ -1,6 +1,6 @@
 use regex::Regex;
 
-enum ParseResult<'a> {
+pub enum ParseResult<'a> {
     Value { value: ParseValue, remaining_input: &'a str},
     Empty,
     Error { text: String }
@@ -29,7 +29,7 @@ impl<'a> ParseResult<'a> {
     }
 }
 
-enum ParseValue {
+pub enum ParseValue {
     String(String),
     List(Vec<ParseValue>),
     Nil
@@ -129,13 +129,26 @@ pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     }
 }
 
-pub fn or(parser_1: impl Fn(&str) -> ParseResult, parser_2: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+pub fn or_internal(parser: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
-        match parser_1(input) {
-            ParseResult::Empty => return parser_2(input),
+        match parser[0](input) {
+            ParseResult::Empty => return parser[1](input),
             result => return result
         }
     }
+}
+
+#[macro_export]
+macro_rules! or {
+    ( $( $x:expr ),* ) => {
+        {
+            let mut v = Vec::new();
+            $(
+                v.push(Box::new($x));
+            )*
+            parser::or_internal(v)
+        }
+    };
 }
 
 #[cfg(test)]
@@ -231,8 +244,9 @@ mod tests {
     }
 
     #[test]
-    fn or() {
-        let f = parser::or(parser::digit(), parser::alphabetic());
+    fn or_test() {
+        let f = parser::or_internal(vec!(Box::new(parser::digit()), Box::new(parser::alphabetic())));
+//        let f = or!(parser::digit(), parser::alphabetic());
         assert!(f("123").is_value());
         assert!(f("abc").is_value());
         assert!(f(" abc").is_empty());

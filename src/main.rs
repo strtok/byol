@@ -2,7 +2,7 @@ extern crate pretty_env_logger;
 extern crate regex;
 #[macro_use] extern crate log;
 
-mod parser;
+#[macro_use] mod parser;
 
 use rustyline::error::ReadlineError;
 
