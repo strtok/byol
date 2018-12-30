@@ -129,7 +129,7 @@ pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     }
 }
 
-fn or_internal(parser: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> ParseResult {
+pub fn or(parser: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         match parser[0](input) {
             ParseResult::Empty => return parser[1](input),
@@ -146,7 +146,7 @@ macro_rules! or {
             $(
                 v.push(Box::new($x));
             )*
-            parser::or_internal(v)
+            parser::or(v)
         }
     };
 }
