@@ -7,7 +7,7 @@ enum ParseResult<'a> {
 }
 
 impl<'a> ParseResult<'a> {
-    pub fn is_ok(&self) -> bool {
+    pub fn is_value(&self) -> bool {
         match *self {
             ParseResult::Value {..} => true,
             _ => false
@@ -129,6 +129,15 @@ pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     }
 }
 
+pub fn or(parser_1: impl Fn(&str) -> ParseResult, parser_2: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+    move |input: &str| {
+        match parser_1(input) {
+            ParseResult::Empty => return parser_2(input),
+            result => return result
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::parser;
@@ -162,15 +171,15 @@ mod tests {
 
     #[test]
     fn digit() {
-        assert!(parser::digit()("1").is_ok());
+        assert!(parser::digit()("1").is_value());
         assert!(parser::digit()("A").is_empty());
     }
 
     #[test]
     fn regex() {
         assert!(parser::regex("[a-z]")("123").is_empty());
-        assert!(parser::regex("[a-z]")("a23").is_ok());
-        assert!(parser::regex("[\\s]")("\t").is_ok());
+        assert!(parser::regex("[a-z]")("a23").is_value());
+        assert!(parser::regex("[\\s]")("\t").is_value());
     }
 
     #[test]
@@ -219,5 +228,13 @@ mod tests {
     fn repeat1_errors_when_empty() {
         let f = parser::repeat1(parser::digit());
         assert!(f("abc").is_error());
+    }
+
+    #[test]
+    fn or() {
+        let f = parser::or(parser::digit(), parser::alphabetic());
+        assert!(f("123").is_value());
+        assert!(f("abc").is_value());
+        assert!(f(" abc").is_empty());
     }
 }
