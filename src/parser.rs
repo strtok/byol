@@ -142,7 +142,7 @@ pub fn or_internal(parser: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&st
 macro_rules! or {
     ( $( $x:expr ),* ) => {
         {
-            let mut v = Vec::new();
+            let mut v: Vec<Box<dyn Fn(&str) -> parser::ParseResult>> = Vec::new();
             $(
                 v.push(Box::new($x));
             )*
@@ -245,8 +245,7 @@ mod tests {
 
     #[test]
     fn or_test() {
-        let f = parser::or_internal(vec!(Box::new(parser::digit()), Box::new(parser::alphabetic())));
-//        let f = or!(parser::digit(), parser::alphabetic());
+        let f = or!(parser::digit(), parser::alphabetic());
         assert!(f("123").is_value());
         assert!(f("abc").is_value());
         assert!(f(" abc").is_empty());
