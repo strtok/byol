@@ -129,12 +129,15 @@ pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     }
 }
 
-pub fn or(parser: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> ParseResult {
+pub fn or(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
-        match parser[0](input) {
-            ParseResult::Empty => return parser[1](input),
-            result => return result
+        for parser in &parsers {
+            match parser(input) {
+                ParseResult::Empty => continue,
+                result => return result
+            }
         }
+        ParseResult::Error{text: "expected at least one or() value".to_string()}
     }
 }
 
@@ -248,6 +251,6 @@ mod tests {
         let f = or!(parser::digit(), parser::alphabetic());
         assert!(f("123").is_value());
         assert!(f("abc").is_value());
-        assert!(f(" abc").is_empty());
+        assert!(f(" abc").is_error());
     }
 }
