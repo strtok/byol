@@ -129,7 +129,7 @@ pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     }
 }
 
-pub fn or(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> ParseResult {
+pub fn one_of(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         for parser in &parsers {
             match parser(input) {
@@ -142,14 +142,14 @@ pub fn or(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> Pa
 }
 
 #[macro_export]
-macro_rules! or {
+macro_rules! one_of {
     ( $( $x:expr ),* ) => {
         {
             let mut v: Vec<Box<dyn Fn(&str) -> parser::ParseResult>> = Vec::new();
             $(
                 v.push(Box::new($x));
             )*
-            parser::or(v)
+            parser::one_of(v)
         }
     };
 }
@@ -247,8 +247,8 @@ mod tests {
     }
 
     #[test]
-    fn or_test() {
-        let f = or!(parser::digit(), parser::alphabetic());
+    fn one_of_test() {
+        let f = one_of!(parser::digit(), parser::alphabetic());
         assert!(f("123").is_value());
         assert!(f("abc").is_value());
         assert!(f(" abc").is_error());
