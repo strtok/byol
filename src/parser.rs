@@ -68,6 +68,10 @@ pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult
     }
 }
 
+pub fn sym(c: char) -> impl Fn(&str) -> ParseResult {
+    satisfy(move |_c| { c == _c })
+}
+
 pub fn regex(regex: &str) -> impl Fn(&str) -> ParseResult {
     let re = Regex::new(regex).unwrap();
     satisfy(move |c: char| {
@@ -208,6 +212,20 @@ mod tests {
             if let parser::ParseValue::String(str) = value {
                 assert_eq!(str, "a");
                 assert_eq!(remaining_input, "bc");
+                return;
+            }
+        }
+
+        panic!("fail");
+    }
+
+    #[test]
+    fn sym() {
+        let f = parser::sym('{');
+        if let parser::ParseResult::Value { value, remaining_input } = f("{abc") {
+            if let parser::ParseValue::String(str) = value {
+                assert_eq!(str, "{");
+                assert_eq!(remaining_input, "abc");
                 return;
             }
         }
