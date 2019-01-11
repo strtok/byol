@@ -185,6 +185,10 @@ macro_rules! seq {
     };
 }
 
+pub fn boxed() -> Rc<RefCell<Box<dyn Fn (&str) -> ParseResult>>> {
+    Rc::new(RefCell::new(Box::new(|_input: &str| { ParseResult::Error{text: "uninitialized parser".to_string()} })))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::parser;
@@ -322,9 +326,9 @@ mod tests {
 
     #[test]
     fn xxx() {
-        let r: Rc<RefCell<Box<dyn Fn (&str) -> parser::ParseResult>>> = Rc::new(RefCell::new(Box::new(|_input: &str| { parser::ParseResult::Error{text: "uninitialized parser".to_string()} })));
-        let r_clone = Rc::clone(&r);
+        let r = parser::boxed();
 
+        let r_clone = Rc::clone(&r);
         let parser = seq!(move |input: &str| {
                 let parser = r_clone.borrow();
                 parser(input)
