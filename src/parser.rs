@@ -188,6 +188,8 @@ macro_rules! seq {
 #[cfg(test)]
 mod tests {
     use crate::parser;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     #[test]
     fn succeed() {
@@ -315,5 +317,24 @@ mod tests {
                      parser::digit());
         assert!(f("abc").is_error());
         assert!(f("").is_error());
+    }
+
+
+    #[test]
+    fn xxx() {
+        let r: Rc<RefCell<Box<dyn Fn (&str) -> parser::ParseResult>>> = Rc::new(RefCell::new(Box::new(|_input: &str| { parser::ParseResult::Error{text: "uninitialized parser".to_string()} })));
+        let r_clone = Rc::clone(&r);
+
+        let parser = seq!(move |input: &str| {
+                let parser = r_clone.borrow();
+                parser(input)
+            }
+        );
+
+        assert!(parser("abc").is_error());
+
+        let new_closure: Box<dyn Fn (&str) -> parser::ParseResult> = Box::new(|input: &str| { parser::ParseResult::Value{value: parser::ParseValue::String("wat".to_string()), remaining_input: &input[1..]} });
+        r.replace(new_closure);
+        assert!(parser("abc").is_value());
     }
 }
