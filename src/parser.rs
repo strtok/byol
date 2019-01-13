@@ -345,7 +345,7 @@ mod tests {
 
 
     #[test]
-    fn xxx() {
+    fn boxed_closure() {
         let r = parser::boxed();
 
         let r_clone = Rc::clone(&r);
