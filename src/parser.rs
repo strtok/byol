@@ -211,15 +211,12 @@ mod tests {
     fn satisfy() {
         let f = parser::satisfy(|_c| { true });
 
-        if let parser::ParseResult::Value { value, remaining_input } = f("abc") {
-            if let parser::ParseValue::String(str) = value {
-                assert_eq!(str, "a");
-                assert_eq!(remaining_input, "bc");
-                return;
-            }
+        if let parser::ParseResult::Value { value: parser::ParseValue::String(str), remaining_input } = f("abc") {
+            assert_eq!(str, "a");
+            assert_eq!(remaining_input, "bc");
+        } else {
+            panic!("fail");
         }
-
-        panic!("fail");
     }
 
     #[test]
@@ -231,15 +228,12 @@ mod tests {
     #[test]
     fn sym() {
         let f = parser::sym('{');
-        if let parser::ParseResult::Value { value, remaining_input } = f("{abc") {
-            if let parser::ParseValue::String(str) = value {
-                assert_eq!(str, "{");
-                assert_eq!(remaining_input, "abc");
-                return;
-            }
+        if let parser::ParseResult::Value { value: parser::ParseValue::String(str), remaining_input } = f("{abc") {
+            assert_eq!(str, "{");
+            assert_eq!(remaining_input, "abc");
+        } else {
+            panic!("fail");
         }
-
-        panic!("fail");
     }
 
     #[test]
@@ -260,14 +254,10 @@ mod tests {
         let f = parser::repeat(parser::digit());
         let result = f("12345abc");
 
-        if let parser::ParseResult::Value{value, remaining_input} = result {
+        if let parser::ParseResult::Value{value: parser::ParseValue::List(list), remaining_input} = result {
             assert_eq!(remaining_input, "abc");
-            if let parser::ParseValue::List(list) = value {
-                assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
-                           vec!("1", "2", "3", "4", "5"));
-            } else {
-                panic!();
-            }
+            assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
+                       vec!("1", "2", "3", "4", "5"));
         } else {
             panic!();
         }
@@ -285,14 +275,10 @@ mod tests {
         let f = parser::repeat1(parser::digit());
         let result = f("12345abc");
 
-        if let parser::ParseResult::Value{value, remaining_input} = result {
+        if let parser::ParseResult::Value{value: parser::ParseValue::List(list), remaining_input} = result {
             assert_eq!(remaining_input, "abc");
-            if let parser::ParseValue::List(list) = value {
-                assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
-                           vec!("1", "2", "3", "4", "5"));
-            } else {
-                panic!();
-            }
+            assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
+                       vec!("1", "2", "3", "4", "5"));
         } else {
             panic!();
         }
@@ -319,14 +305,10 @@ mod tests {
                      parser::digit());
         let result = f("1f2abc");
 
-        if let parser::ParseResult::Value{value, remaining_input} = result {
+        if let parser::ParseResult::Value{value: parser::ParseValue::List(list), remaining_input} = result {
             assert_eq!(remaining_input, "abc");
-            if let parser::ParseValue::List(list) = value {
-                assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
-                           vec!("1", "f", "2"));
-            } else {
-                panic!();
-            }
+            assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
+                       vec!("1", "f", "2"));
         } else {
             panic!();
         }
