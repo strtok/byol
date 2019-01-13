@@ -4,7 +4,6 @@ use std::cell::RefCell;
 
 pub enum ParseResult<'a> {
     Value { value: ParseValue, remaining_input: &'a str},
-    Empty,
     Error { text: String }
 }
 
@@ -18,7 +17,7 @@ impl<'a> ParseResult<'a> {
 
     pub fn is_empty(&self) -> bool {
         match *self {
-            ParseResult::Empty => true,
+            ParseResult::Value {value: ParseValue::Empty, remaining_input: _} => true,
             _ => false
         }
     }
@@ -34,7 +33,7 @@ impl<'a> ParseResult<'a> {
 pub enum ParseValue {
     String(String),
     List(Vec<ParseValue>),
-    Nil
+    Empty
 }
 
 impl ParseValue {
@@ -48,15 +47,15 @@ impl ParseValue {
 }
 
 pub fn succeed() -> impl Fn(&str) -> ParseResult {
-    |_: &str| {
-        ParseResult::Empty
+    |input: &str| {
+        ParseResult::Value{value: ParseValue::Empty, remaining_input: input}
     }
 }
 
 pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         if input.is_empty() {
-            return ParseResult::Empty;
+            return ParseResult::Error {text: "satisfy not satisfied".to_string()}
         }
         let c = &input[0..1];
         if predicate(c.chars().next().unwrap()) {
@@ -65,7 +64,7 @@ pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult
                 remaining_input: &input[1..]
             }
         } else {
-            ParseResult::Empty
+            ParseResult::Error {text: "satisfy not satisfied".to_string()}
         }
     }
 }
@@ -109,12 +108,13 @@ pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRes
                     values.push(value);
                     remaining = remaining_input;
                 },
-                ParseResult::Empty => {
-                    if values.is_empty() {
-                        return ParseResult::Empty;
+                ParseResult::Error{text} => {
+                    if (values.is_empty()) {
+                        return ParseResult::Value{value: ParseValue::Empty, remaining_input: remaining}
+                    } else {
+                        return ParseResult::Value{value: ParseValue::List(values), remaining_input: remaining}
                     }
-                    return ParseResult::Value {value: ParseValue::List(values), remaining_input: remaining };
-                },
+                }
                 result => {
                     return result;
                 }
@@ -127,7 +127,7 @@ pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     let repeat_parser = repeat(parser);
     move |input: &str| {
         match repeat_parser(input) {
-            ParseResult::Empty => {
+            ParseResult::Value{value: ParseValue::Empty, remaining_input: _} => {
                 ParseResult::Error{text: "expected at least one value".to_string()}
             },
             result => result
@@ -139,8 +139,10 @@ pub fn one_of(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -
     move |input: &str| {
         for parser in &parsers {
             match parser(input) {
-                ParseResult::Empty => continue,
-                result => return result
+                ParseResult::Value{value, remaining_input} => {
+                    return ParseResult::Value{value, remaining_input}
+                }
+                _ => continue
             }
         }
         ParseResult::Error{text: "expected at least one or() value".to_string()}
@@ -166,7 +168,6 @@ pub fn seq(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> P
         let mut values: Vec<ParseValue> = Vec::new();
         for parser in &parsers {
             match parser(remaining) {
-                ParseResult::Empty => return ParseResult::Error{text: "unexpected empty result in sequence".to_string()},
                 ParseResult::Value{value, remaining_input} => {
                     values.push(value);
                     remaining = remaining_input;
@@ -222,6 +223,12 @@ mod tests {
     }
 
     #[test]
+    fn satisfy_no_input() {
+        let f = parser::satisfy(|_c: char| {true});
+        assert!(f("").is_error());
+    }
+
+    #[test]
     fn sym() {
         let f = parser::sym('{');
         if let parser::ParseResult::Value { value, remaining_input } = f("{abc") {
@@ -236,21 +243,14 @@ mod tests {
     }
 
     #[test]
-    fn satisfy_no_input() {
-        let f = parser::satisfy(|_c: char| {true});
-        assert!(f("").is_empty());
-    }
-
-
-    #[test]
     fn digit() {
         assert!(parser::digit()("1").is_value());
-        assert!(parser::digit()("A").is_empty());
+        assert!(parser::digit()("A").is_error());
     }
 
     #[test]
     fn regex() {
-        assert!(parser::regex("[a-z]")("123").is_empty());
+        assert!(parser::regex("[a-z]")("123").is_error());
         assert!(parser::regex("[a-z]")("a23").is_value());
         assert!(parser::regex("[\\s]")("\t").is_value());
     }
@@ -278,6 +278,7 @@ mod tests {
         let f = parser::repeat(parser::digit());
         assert!(f("abc").is_empty());
     }
+
 
     #[test]
     fn repeat1() {
