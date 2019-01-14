@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 pub enum ParseResult<'a> {
-    Value { value: ParseValue, remaining_input: &'a str},
+    Value { value: ParseValue<'a>, remaining_input: &'a str},
     Error { text: String }
 }
 
@@ -30,13 +30,13 @@ impl<'a> ParseResult<'a> {
     }
 }
 
-pub enum ParseValue {
-    String(String),
-    List(Vec<ParseValue>),
+pub enum ParseValue<'a> {
+    String(&'a str),
+    List(Vec<ParseValue<'a>>),
     Empty
 }
 
-impl ParseValue {
+impl<'a> ParseValue<'a> {
     pub fn string(&self) -> &str {
         if let ParseValue::String(s) = self {
             return &s;
@@ -60,7 +60,7 @@ pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult
         let c = &input[0..1];
         if predicate(c.chars().next().unwrap()) {
             ParseResult::Value {
-                value: ParseValue::String(c.to_string()),
+                value: ParseValue::String(c),
                 remaining_input: &input[1..]
             }
         } else {
@@ -108,15 +108,12 @@ pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRes
                     values.push(value);
                     remaining = remaining_input;
                 },
-                ParseResult::Error{text} => {
-                    if (values.is_empty()) {
+                ParseResult::Error{text: _} => {
+                    if values.is_empty() {
                         return ParseResult::Value{value: ParseValue::Empty, remaining_input: remaining}
                     } else {
                         return ParseResult::Value{value: ParseValue::List(values), remaining_input: remaining}
                     }
-                }
-                result => {
-                    return result;
                 }
             }
         }
@@ -199,7 +196,6 @@ pub fn boxed() -> Rc<RefCell<Box<dyn Fn (&str) -> ParseResult>>> {
 #[cfg(test)]
 mod tests {
     use crate::parser;
-    use std::cell::RefCell;
     use std::rc::Rc;
 
     #[test]
@@ -226,7 +222,7 @@ mod tests {
     }
 
     #[test]
-    fn ch() {
+    fn sym() {
         let f = parser::ch('{');
         if let parser::ParseResult::Value { value: parser::ParseValue::String(str), remaining_input } = f("{abc") {
             assert_eq!(str, "{");
@@ -340,7 +336,7 @@ mod tests {
 
         assert!(parser("abc").is_error());
 
-        let new_closure: Box<dyn Fn (&str) -> parser::ParseResult> = Box::new(|input: &str| { parser::ParseResult::Value{value: parser::ParseValue::String("wat".to_string()), remaining_input: &input[1..]} });
+        let new_closure: Box<dyn Fn (&str) -> parser::ParseResult> = Box::new(|input: &str| { parser::ParseResult::Value{value: parser::ParseValue::String("wat"), remaining_input: &input[1..]} });
         r.replace(new_closure);
         assert!(parser("abc").is_value());
     }
