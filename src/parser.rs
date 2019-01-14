@@ -69,7 +69,7 @@ pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult
     }
 }
 
-pub fn sym(c: char) -> impl Fn(&str) -> ParseResult {
+pub fn ch(c: char) -> impl Fn(&str) -> ParseResult {
     satisfy(move |_c| { c == _c })
 }
 
@@ -226,8 +226,8 @@ mod tests {
     }
 
     #[test]
-    fn sym() {
-        let f = parser::sym('{');
+    fn ch() {
+        let f = parser::ch('{');
         if let parser::ParseResult::Value { value: parser::ParseValue::String(str), remaining_input } = f("{abc") {
             assert_eq!(str, "{");
             assert_eq!(remaining_input, "abc");
