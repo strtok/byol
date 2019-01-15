@@ -108,15 +108,12 @@ pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRes
                     values.push(value);
                     remaining = remaining_input;
                 },
-                ParseResult::Error{text} => {
-                    if (values.is_empty()) {
+                ParseResult::Error{text: _} => {
+                    if values.is_empty() {
                         return ParseResult::Value{value: ParseValue::Empty, remaining_input: remaining}
                     } else {
                         return ParseResult::Value{value: ParseValue::List(values), remaining_input: remaining}
                     }
-                }
-                result => {
-                    return result;
                 }
             }
         }
@@ -176,6 +173,25 @@ pub fn seq(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> P
             }
         }
         return ParseResult::Value {value: ParseValue::List(values), remaining_input: remaining };
+    }
+}
+
+pub fn flat_string(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+    move |input: &str| {
+        match parser(input) {
+            ParseResult::Value {value: ParseValue::List(list), remaining_input} => {
+                let flattened = list.iter().flat_map(|r| {
+                    if let ParseValue::String(ref s) = r {
+                        s.chars()
+                    } else {
+                        panic!("unexpected non-string value in flat_string");
+                    }
+                }).collect();
+
+                ParseResult::Value {value: ParseValue::String(flattened), remaining_input}
+            }
+            result => result
+        }
     }
 }
 
@@ -343,5 +359,19 @@ mod tests {
         let new_closure: Box<dyn Fn (&str) -> parser::ParseResult> = Box::new(|input: &str| { parser::ParseResult::Value{value: parser::ParseValue::String("wat".to_string()), remaining_input: &input[1..]} });
         r.replace(new_closure);
         assert!(parser("abc").is_value());
+    }
+
+    #[test]
+    fn flat_string() {
+        let f = parser::flat_string(parser::repeat(parser::regex("[a-z]")));
+        let result = f("foobar123");
+
+        if let parser::ParseResult::Value{value: parser::ParseValue::String(s), remaining_input} = result {
+            assert_eq!(s, "foobar");
+            assert_eq!(remaining_input, "123");
+        } else {
+            panic!();
+        }
+
     }
 }
