@@ -14,20 +14,40 @@ fn main() {
     let whitespace = || {
         repeat(regex("[\\s]"))
     };
-    let parser = seq!(ch('('), whitespace(), ch(')'));
+
+    let number = || {
+      repeat(digit())
+    };
+
+    let operator = || {
+        regex("[+/*-]")
+    };
+
+    let exbx = parser::boxed();
+    let exbx_clone = exbx.clone();
+    let expr = seq!(move |input: &str| {
+                let parser = exbx_clone.borrow();
+                parser(input)
+            }
+        );
+
+    exbx.replace(Box::new(
+        one_of!(number(),
+                   seq!(ch('('), ch(')')))
+    ));
 
     let mut rl = rustyline::Editor::<()>::new();
     loop {
         let readline = rl.readline("lisp> ");
         match readline {
             Ok(line) => {
-                let result = parser(&line);
+                let result = expr(&line);
                 match result {
                     ParseResult::Value {value: _, remaining_input: _} => {
-                        info!("success!");
+                        println!("success!");
                     }
                     ParseResult::Error{text} => {
-                        info!("error: {}", text);
+                        println!("error: {}", text);
                     }
                 }
             },
