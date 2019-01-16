@@ -26,7 +26,7 @@ fn main() {
     let mut expr = Parser::new();
     let inner_expr = Box::new(
         one_of!(number(),
-            seq!(ch('('), operator(), repeat1(seq!(whitespace(), expr.make())), ch(')')))
+            seq!(ch('('), optional(whitespace()), operator(), repeat1(seq!(whitespace(), expr.make())), ch(')')))
     );
 
     expr.update(inner_expr);
