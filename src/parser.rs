@@ -3,28 +3,28 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 pub enum ParseResult<'a> {
-    Value { value: ParseValue, remaining_input: &'a str},
-    Error { text: String }
+    Value(ParseValue, &'a str),
+    Error(String)
 }
 
 impl<'a> ParseResult<'a> {
     pub fn is_value(&self) -> bool {
         match *self {
-            ParseResult::Value {..} => true,
+            ParseResult::Value(_,_) => true,
             _ => false
         }
     }
 
     pub fn is_empty(&self) -> bool {
         match *self {
-            ParseResult::Value {value: ParseValue::Empty, remaining_input: _} => true,
+            ParseResult::Value(ParseValue::Empty, _) => true,
             _ => false
         }
     }
 
     pub fn is_error(&self) -> bool {
         match *self {
-            ParseResult::Error {..} => true,
+            ParseResult::Error(_) => true,
             _ => false
         }
     }
@@ -48,23 +48,23 @@ impl ParseValue {
 
 pub fn succeed() -> impl Fn(&str) -> ParseResult {
     |input: &str| {
-        ParseResult::Value{value: ParseValue::Empty, remaining_input: input}
+        ParseResult::Value(ParseValue::Empty, input)
     }
 }
 
 pub fn satisfy(predicate: impl Fn(char) -> bool) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         if input.is_empty() {
-            return ParseResult::Error {text: "satisfy not satisfied".to_string()}
+            return ParseResult::Error("satisfy not satisfied".to_string())
         }
         let c = &input[0..1];
         if predicate(c.chars().next().unwrap()) {
-            ParseResult::Value {
-                value: ParseValue::String(c.to_string()),
-                remaining_input: &input[1..]
-            }
+            ParseResult::Value(
+                ParseValue::String(c.to_string()),
+                &input[1..]
+            )
         } else {
-            ParseResult::Error {text: "satisfy not satisfied".to_string()}
+            ParseResult::Error("satisfy not satisfied".to_string())
         }
     }
 }
@@ -101,8 +101,8 @@ pub fn alphabetic() -> impl Fn(&str) -> ParseResult {
 pub fn optional(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         match parser(input) {
-            ParseResult::Error{text: _} => {
-                ParseResult::Value{value: ParseValue::Empty, remaining_input: input}
+            ParseResult::Error(_) => {
+                ParseResult::Value(ParseValue::Empty,input)
             }
             result => result
         }
@@ -115,15 +115,15 @@ pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRes
         let mut values: Vec<ParseValue> = Vec::new();
         loop {
             match parser(remaining) {
-                ParseResult::Value{value, remaining_input} => {
+                ParseResult::Value(value, remaining_input) => {
                     values.push(value);
                     remaining = remaining_input;
                 },
-                ParseResult::Error{text: _} => {
+                ParseResult::Error(_) => {
                     if values.is_empty() {
-                        return ParseResult::Value{value: ParseValue::Empty, remaining_input: remaining}
+                        return ParseResult::Value(ParseValue::Empty, remaining)
                     } else {
-                        return ParseResult::Value{value: ParseValue::List(values), remaining_input: remaining}
+                        return ParseResult::Value(ParseValue::List(values), remaining)
                     }
                 }
             }
@@ -135,8 +135,8 @@ pub fn repeat1(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     let repeat_parser = repeat(parser);
     move |input: &str| {
         match repeat_parser(input) {
-            ParseResult::Value{value: ParseValue::Empty, remaining_input: _} => {
-                ParseResult::Error{text: "expected at least one value".to_string()}
+            ParseResult::Value(ParseValue::Empty, _) => {
+                ParseResult::Error("expected at least one value".to_string())
             },
             result => result
         }
@@ -147,13 +147,13 @@ pub fn one_of(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -
     move |input: &str| {
         for parser in &parsers {
             match parser(input) {
-                ParseResult::Value{value, remaining_input} => {
-                    return ParseResult::Value{value, remaining_input}
+                ParseResult::Value(value, remaining_input) => {
+                    return ParseResult::Value(value, remaining_input)
                 }
                 _ => continue
             }
         }
-        ParseResult::Error{text: "expected at least one or() value".to_string()}
+        ParseResult::Error("expected at least one or() value".to_string())
     }
 }
 
@@ -176,21 +176,21 @@ pub fn seq(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> P
         let mut values: Vec<ParseValue> = Vec::new();
         for parser in &parsers {
             match parser(remaining) {
-                ParseResult::Value{value, remaining_input} => {
+                ParseResult::Value(value, remaining_input) => {
                     values.push(value);
                     remaining = remaining_input;
                 },
                 result => return result
             }
         }
-        return ParseResult::Value {value: ParseValue::List(values), remaining_input: remaining };
+        return ParseResult::Value(ParseValue::List(values), remaining);
     }
 }
 
 pub fn flat_string(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         match parser(input) {
-            ParseResult::Value {value: ParseValue::List(list), remaining_input} => {
+            ParseResult::Value(ParseValue::List(list), remaining_input) => {
                 let flattened = list.iter().flat_map(|r| {
                     if let ParseValue::String(ref s) = r {
                         s.chars()
@@ -199,7 +199,7 @@ pub fn flat_string(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> Par
                     }
                 }).collect();
 
-                ParseResult::Value {value: ParseValue::String(flattened), remaining_input}
+                ParseResult::Value(ParseValue::String(flattened), remaining_input)
             }
             result => result
         }
@@ -226,7 +226,7 @@ pub struct Parser {
 impl Parser {
     pub fn new() -> Parser {
         Parser {
-            parser: Rc::new(RefCell::new(Box::new(|_input: &str| { ParseResult::Error{text: "uninitialized parser".to_string()} })))
+            parser: Rc::new(RefCell::new(Box::new(|_input: &str| { ParseResult::Error("uninitialized parser".to_string()) })))
         }
     }
 
@@ -258,7 +258,7 @@ mod tests {
     fn satisfy() {
         let f = parser::satisfy(|_c| { true });
 
-        if let parser::ParseResult::Value { value: parser::ParseValue::String(str), remaining_input } = f("abc") {
+        if let parser::ParseResult::Value(parser::ParseValue::String(str), remaining_input) = f("abc") {
             assert_eq!(str, "a");
             assert_eq!(remaining_input, "bc");
         } else {
@@ -275,7 +275,7 @@ mod tests {
     #[test]
     fn ch() {
         let f = parser::ch('{');
-        if let parser::ParseResult::Value { value: parser::ParseValue::String(str), remaining_input } = f("{abc") {
+        if let parser::ParseResult::Value(parser::ParseValue::String(str), remaining_input) = f("{abc") {
             assert_eq!(str, "{");
             assert_eq!(remaining_input, "abc");
         } else {
@@ -301,7 +301,7 @@ mod tests {
         let f = parser::repeat(parser::digit());
         let result = f("12345abc");
 
-        if let parser::ParseResult::Value{value: parser::ParseValue::List(list), remaining_input} = result {
+        if let parser::ParseResult::Value(parser::ParseValue::List(list), remaining_input) = result {
             assert_eq!(remaining_input, "abc");
             assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
                        vec!("1", "2", "3", "4", "5"));
@@ -322,7 +322,7 @@ mod tests {
         let f = parser::repeat1(parser::digit());
         let result = f("12345abc");
 
-        if let parser::ParseResult::Value{value: parser::ParseValue::List(list), remaining_input} = result {
+        if let parser::ParseResult::Value(parser::ParseValue::List(list), remaining_input) = result {
             assert_eq!(remaining_input, "abc");
             assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
                        vec!("1", "2", "3", "4", "5"));
@@ -353,7 +353,7 @@ mod tests {
                      parser::digit());
         let result = f("1f2abc");
 
-        if let parser::ParseResult::Value{value: parser::ParseValue::List(list), remaining_input} = result {
+        if let parser::ParseResult::Value(parser::ParseValue::List(list), remaining_input) = result {
             assert_eq!(remaining_input, "abc");
             assert_eq!(list.iter().map(|x| x.string().to_string() ).collect::<Vec<String>>(),
                        vec!("1", "f", "2"));
@@ -392,7 +392,7 @@ mod tests {
         let f = parser::flat_string(parser::repeat(parser::regex("[a-z]")));
         let result = f("foobar123");
 
-        if let parser::ParseResult::Value{value: parser::ParseValue::String(s), remaining_input} = result {
+        if let parser::ParseResult::Value(parser::ParseValue::String(s), remaining_input) = result {
             assert_eq!(s, "foobar");
             assert_eq!(remaining_input, "123");
         } else {

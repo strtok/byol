@@ -40,10 +40,10 @@ fn main() {
             Ok(line) => {
                 let result = parser(&line);
                 match result {
-                    ParseResult::Value {value: _, remaining_input: _} => {
+                    ParseResult::Value(..) => {
                         println!("success!");
                     }
-                    ParseResult::Error{text} => {
+                    ParseResult::Error(text) => {
                         println!("error: {}", text);
                     }
                 }
