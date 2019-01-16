@@ -98,6 +98,17 @@ pub fn alphabetic() -> impl Fn(&str) -> ParseResult {
     })
 }
 
+pub fn optional(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+    move |input: &str| {
+        match parser(input) {
+            ParseResult::Error{text: _} => {
+                ParseResult::Value{value: ParseValue::Empty, remaining_input: input}
+            }
+            result => result
+        }
+    }
+}
+
 pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         let mut remaining = input;
@@ -388,5 +399,12 @@ mod tests {
             panic!();
         }
 
+    }
+
+    #[test]
+    fn optional() {
+        let f = seq!(parser::digit(), parser::optional(parser::digit()));
+        assert!(f("12").is_value());
+        assert!(f("1").is_value());
     }
 }
