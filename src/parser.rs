@@ -208,32 +208,28 @@ macro_rules! seq {
     };
 }
 
-struct Parser {
+pub struct Parser {
     parser: Rc<RefCell<Box<dyn Fn (&str) -> ParseResult>>>
 }
 
 impl Parser {
-    fn new() -> Parser {
+    pub fn new() -> Parser {
         Parser {
             parser: Rc::new(RefCell::new(Box::new(|_input: &str| { ParseResult::Error{text: "uninitialized parser".to_string()} })))
         }
     }
 
-    fn update(&mut self, f: Box<dyn Fn (&str) -> ParseResult>) {
+    pub fn update(&mut self, f: Box<dyn Fn (&str) -> ParseResult>) {
         self.parser.replace(f);
     }
 
-    fn make(&mut self) -> impl Fn(&str) -> ParseResult {
+    pub fn make(&mut self) -> impl Fn(&str) -> ParseResult {
         let parser_ref = self.parser.clone();
         move |input: &str| {
             let f = parser_ref.borrow();
             f(input)
         }
     }
-}
-
-pub fn boxed() -> Rc<RefCell<Box<dyn Fn (&str) -> ParseResult>>> {
-    Rc::new(RefCell::new(Box::new(|_input: &str| { ParseResult::Error{text: "uninitialized parser".to_string()} })))
 }
 
 #[cfg(test)]
@@ -336,6 +332,7 @@ mod tests {
         assert!(f("123").is_value());
         assert!(f("abc").is_value());
         assert!(f(" abc").is_error());
+        assert!(f("@").is_error());
     }
 
     #[test]

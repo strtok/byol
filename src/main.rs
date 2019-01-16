@@ -12,11 +12,11 @@ fn main() {
     debug!("starting");
 
     let whitespace = || {
-        repeat(regex("[\\s]"))
+        repeat1(regex("[\\s]"))
     };
 
     let number = || {
-      repeat1(digit())
+        repeat1(digit())
     };
 
     let operator = || {
@@ -26,7 +26,7 @@ fn main() {
     let mut expr = Parser::new();
     let inner_expr = Box::new(
         one_of!(number(),
-            seq!(ch('('), operator(), whitespace(), repeat1(expr.make()), whitespace(), ch(')')))
+            seq!(ch('('), operator(), repeat1(seq!(whitespace(), expr.make())), ch(')')))
     );
 
     expr.update(inner_expr);
