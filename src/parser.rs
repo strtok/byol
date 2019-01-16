@@ -208,6 +208,30 @@ macro_rules! seq {
     };
 }
 
+struct Parser {
+    parser: Rc<RefCell<Box<dyn Fn (&str) -> ParseResult>>>
+}
+
+impl Parser {
+    fn new() -> Parser {
+        Parser {
+            parser: Rc::new(RefCell::new(Box::new(|_input: &str| { ParseResult::Error{text: "uninitialized parser".to_string()} })))
+        }
+    }
+
+    fn update(&mut self, f: Box<dyn Fn (&str) -> ParseResult>) {
+        self.parser.replace(f);
+    }
+
+    fn make(&mut self) -> impl Fn(&str) -> ParseResult {
+        let parser_ref = self.parser.clone();
+        move |input: &str| {
+            let f = parser_ref.borrow();
+            f(input)
+        }
+    }
+}
+
 pub fn boxed() -> Rc<RefCell<Box<dyn Fn (&str) -> ParseResult>>> {
     Rc::new(RefCell::new(Box::new(|_input: &str| { ParseResult::Error{text: "uninitialized parser".to_string()} })))
 }
@@ -344,21 +368,15 @@ mod tests {
 
 
     #[test]
-    fn boxed_closure() {
-        let r = parser::boxed();
+    fn boxed_parser() {
+        let mut expr = parser::Parser::new();
 
-        let r_clone = Rc::clone(&r);
-        let parser = seq!(move |input: &str| {
-                let parser = r_clone.borrow();
-                parser(input)
-            }
-        );
-
+        let parser = expr.make();
         assert!(parser("abc").is_error());
 
-        let new_closure: Box<dyn Fn (&str) -> parser::ParseResult> = Box::new(|input: &str| { parser::ParseResult::Value{value: parser::ParseValue::String("wat".to_string()), remaining_input: &input[1..]} });
-        r.replace(new_closure);
-        assert!(parser("abc").is_value());
+        expr.update(Box::new(parser::digit()));
+        assert!(parser("123").is_value());
+        assert!(parser("abc").is_error());
     }
 
     #[test]
