@@ -11,12 +11,16 @@ fn main() {
     pretty_env_logger::init();
     debug!("starting");
 
-    let whitespace = || {
-        repeat1(regex("[\\s]"))
+    let ws = || {
+        discard(repeat1(regex("[\\s]")))
+    };
+
+    let opt_ws = || {
+        optional(ws())
     };
 
     let number = || {
-        repeat1(digit())
+        flat_string(repeat1(digit()))
     };
 
     let operator = || {
@@ -26,7 +30,11 @@ fn main() {
     let mut expr = Parser::new();
     let inner_expr = Box::new(
         one_of!(number(),
-            seq!(ch('('), optional(whitespace()), operator(), repeat1(seq!(whitespace(), expr.make())), ch(')')))
+                  seq!(ch('('),
+                          opt_ws(),
+                          operator(),
+                          repeat1(seq!(ws(), expr.delegate())),
+                       ch(')')))
     );
 
     expr.update(inner_expr);
