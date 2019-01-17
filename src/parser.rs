@@ -2,6 +2,7 @@ use regex::Regex;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[derive(Debug)]
 pub enum ParseResult<'a> {
     Value(ParseValue, &'a str),
     Error(String)
@@ -30,6 +31,7 @@ impl<'a> ParseResult<'a> {
     }
 }
 
+#[derive(Debug)]
 pub enum ParseValue {
     String(String),
     List(Vec<ParseValue>),

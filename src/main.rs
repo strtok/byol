@@ -39,9 +39,10 @@ fn main() {
         match readline {
             Ok(line) => {
                 let result = parser(&line);
-                match result {
-                    ParseResult::Value(..) => {
+                match &result {
+                    ParseResult::Value(value, remaining_input) => {
                         println!("success!");
+                        println!("{:#?}", result);
                     }
                     ParseResult::Error(text) => {
                         println!("error: {}", text);
