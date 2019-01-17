@@ -31,7 +31,7 @@ fn main() {
 
     expr.update(inner_expr);
 
-    let parser = expr.make();
+    let parser = expr.delegate();
 
     let mut rl = rustyline::Editor::<()>::new();
     loop {

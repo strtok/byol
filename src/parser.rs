@@ -236,7 +236,7 @@ impl Parser {
         self.parser.replace(f);
     }
 
-    pub fn make(&mut self) -> impl Fn(&str) -> ParseResult {
+    pub fn delegate(&mut self) -> impl Fn(&str) -> ParseResult {
         let parser_ref = self.parser.clone();
         move |input: &str| {
             let f = parser_ref.borrow();
@@ -381,7 +381,7 @@ mod tests {
     fn boxed_parser() {
         let mut expr = parser::Parser::new();
 
-        let parser = expr.make();
+        let parser = expr.delegate();
         assert!(parser("abc").is_error());
 
         expr.update(Box::new(parser::digit()));
