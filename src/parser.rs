@@ -111,6 +111,17 @@ pub fn optional(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseR
     }
 }
 
+pub fn discard(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+    move |input: &str| {
+        match parser(input) {
+            ParseResult::Value(_,remaining_input) => {
+                ParseResult::Value(ParseValue::Empty,remaining_input)
+            }
+            result => result
+        }
+    }
+}
+
 pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         let mut remaining = input;
