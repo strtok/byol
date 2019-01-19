@@ -33,7 +33,7 @@ fn main() {
                   seq!(ch('('),
                           opt_ws(),
                           operator(),
-                          repeat1(seq!(ws(), expr.delegate())),
+                          repeat1(last_of(seq!(ws(), expr.delegate()))),
                        ch(')')))
     );
 

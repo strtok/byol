@@ -122,6 +122,20 @@ pub fn discard(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRe
     }
 }
 
+pub fn last_of(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
+    move |input: &str| {
+        match parser(input) {
+            ParseResult::Value(ParseValue::List(list),remaining_input) => {
+                ParseResult::Value(list.into_iter().last().unwrap(),remaining_input)
+            }
+            ParseResult::Value(value, _) => {
+                ParseResult::Error("expected list value to take last() of".to_string())
+            }
+            result => result
+        }
+    }
+}
+
 pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseResult {
     move |input: &str| {
         let mut remaining = input;
