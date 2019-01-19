@@ -128,6 +128,9 @@ pub fn repeat(parser: impl Fn(&str) -> ParseResult) -> impl Fn(&str) -> ParseRes
         let mut values: Vec<ParseValue> = Vec::new();
         loop {
             match parser(remaining) {
+                ParseResult::Value(ParseValue::Empty, remaining_input) => {
+                    remaining = remaining_input;
+                },
                 ParseResult::Value(value, remaining_input) => {
                     values.push(value);
                     remaining = remaining_input;
@@ -189,6 +192,9 @@ pub fn seq(parsers: Vec<Box<dyn Fn(&str) -> ParseResult>>) -> impl Fn(&str) -> P
         let mut values: Vec<ParseValue> = Vec::new();
         for parser in &parsers {
             match parser(remaining) {
+                ParseResult::Value(ParseValue::Empty, remaining_input) => {
+                    remaining = remaining_input;
+                },
                 ParseResult::Value(value, remaining_input) => {
                     values.push(value);
                     remaining = remaining_input;
