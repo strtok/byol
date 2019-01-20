@@ -49,6 +49,7 @@ fn main() {
                 let result = parser(&line);
                 match &result {
                     ParseResult::Value(value, remaining_input) => {
+//                        println!("{:#?}", value);
                         println!("{}", eval(&value));
                     }
                     ParseResult::Error(text) => {
@@ -78,7 +79,7 @@ fn eval(expr: &ParseValue) -> u64 {
         ParseValue::List(list) => {
             let op = list[1].string();
             let operands = list[2].list();
-            let mut x = operands[0].string().parse::<u64>().unwrap();
+            let mut x = eval(&operands[0]);
             let mut i = 1;
             while i < operands.len() {
                 match op {
