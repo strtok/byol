@@ -43,7 +43,15 @@ impl ParseValue {
         if let ParseValue::String(s) = self {
             return &s;
         } else {
-            panic!("unexpected type");
+            panic!("expected string");
+        }
+    }
+
+    pub fn list(&self) -> &Vec<ParseValue> {
+        if let ParseValue::List(ref list) = self {
+            list
+        } else {
+            panic!("expected list");
         }
     }
 }

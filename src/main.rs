@@ -49,8 +49,8 @@ fn main() {
                 let result = parser(&line);
                 match &result {
                     ParseResult::Value(value, remaining_input) => {
-                        println!("success!");
                         println!("{:#?}", result);
+                        println!("{}", eval(&value));
                     }
                     ParseResult::Error(text) => {
                         println!("error: {}", text);
@@ -68,5 +68,66 @@ fn main() {
                 break;
             }
         }
+    }
+}
+/*
+Value(
+    List(
+        [
+            String(
+                "("
+            ),
+            String(
+                "+"
+            ),
+            List(
+                [
+                    String(
+                        "1"
+                    ),
+                    String(
+                        "2"
+                    )
+                ]
+            ),
+            String(
+                ")"
+            )
+        ]
+    ),
+    ""
+)*/
+
+fn eval(expr: &ParseValue) -> u64 {
+    match expr {
+        ParseValue::String(number) => {
+            return number.parse::<u64>().unwrap();
+        },
+        ParseValue::List(list) => {
+            let op = list[1].string();
+            let operands = list[2].list();
+            let mut x = operands[0].string().parse::<u64>().unwrap();
+            let mut i = 1;
+            while i < operands.len() {
+                match op {
+                    "+" => {
+                        x = x + eval(&operands[i]);
+                    },
+                    "*" => {
+                        x = x * eval(&operands[i]);
+                    },
+                    "-" => {
+                        x = x - eval(&operands[i]);
+                    },
+                    "/" => {
+                        x = x / eval(&operands[i]);
+                    },
+                    _ => panic!("unknown op")
+                }
+                i = i + 1;
+            }
+            x
+        }
+        result => panic!()
     }
 }
