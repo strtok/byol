@@ -1,7 +1,6 @@
 # rust-closure-parcom
 
-This is an implementation of parser combinators based on the Haskell [parsec](https://hackage.haskell.org/package/parsec) 
-paper using closures. 
+This is a closure based implementation of a rust parser combinator based on the Haskell [parsec](https://hackage.haskell.org/package/parsec) paper.
 
 # syntax example
 
