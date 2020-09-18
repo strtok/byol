@@ -30,6 +30,11 @@ fn main() {
     let mut expr = Parser::new();
     let inner_expr = Box::new(
         one_of!(number(),
+                seq!(ch('('),
+                     opt_ws(),
+                     operator(),
+                     opt_ws(),
+                     ch(')')),
                   seq!(ch('('),
                           opt_ws(),
                           operator(),
@@ -76,6 +81,14 @@ fn eval(expr: &ParseValue) -> u64 {
         ParseValue::String(number) => {
             return number.parse::<u64>().unwrap();
         },
+        ParseValue::List(list) if 3 == list.len() => {
+            let op = list[1].string();
+            match op {
+                "+" => 0,
+                "*" => 1,
+                _ => panic!("op requires arguments")
+           }
+        },
         ParseValue::List(list) => {
             let op = list[1].string();
             let operands = list[2].list();
@@ -100,7 +113,7 @@ fn eval(expr: &ParseValue) -> u64 {
                 i = i + 1;
             }
             x
-        }
+        },
         result => panic!()
     }
 }
