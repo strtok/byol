@@ -117,3 +117,34 @@ fn eval(expr: &ParseValue) -> u64 {
         result => panic!()
     }
 }
+
+#[cfg(test)]
+mod main_tests {
+    use crate::parser;
+
+    #[test]
+    fn sum_empty() {
+        assert_eq!(0,
+            super::eval(
+                &parser::ParseValue::List(vec![
+                    parser::ParseValue::String("(".to_string()),
+                    parser::ParseValue::String("+".to_string()),
+                    parser::ParseValue::String(")".to_string()),
+                ])
+            )
+        );
+    }
+
+    #[test]
+    fn mul_empty() {
+        assert_eq!(1,
+            super::eval(
+                &parser::ParseValue::List(vec![
+                    parser::ParseValue::String("(".to_string()),
+                    parser::ParseValue::String("*".to_string()),
+                    parser::ParseValue::String(")".to_string()),
+                ])
+            )
+        );
+    }
+}
