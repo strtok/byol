@@ -20,7 +20,7 @@ fn main() {
     };
 
     let number = || {
-        flat_string(repeat1(digit()))
+        flat_string(seq!(optional(ch('-')), flat_string(repeat1(digit()))))
     };
 
     let operator = || {
@@ -35,11 +35,12 @@ fn main() {
                      operator(),
                      opt_ws(),
                      ch(')')),
-                  seq!(ch('('),
-                          opt_ws(),
-                          operator(),
-                          repeat1(last_of(seq!(ws(), expr.delegate()))),
-                       ch(')')))
+                seq!(ch('('),
+                     opt_ws(),
+                     operator(),
+                     repeat1(last_of(seq!(ws(), expr.delegate()))),
+                     opt_ws(),
+                     ch(')')))
     );
 
     expr.update(inner_expr);
@@ -76,10 +77,10 @@ fn main() {
     }
 }
 
-fn eval(expr: &ParseValue) -> u64 {
+fn eval(expr: &ParseValue) -> i64 {
     match expr {
         ParseValue::String(number) => {
-            return number.parse::<u64>().unwrap();
+            return number.parse::<i64>().unwrap();
         },
         ParseValue::List(list) if 3 == list.len() => {
             let op = list[1].string();
@@ -115,5 +116,43 @@ fn eval(expr: &ParseValue) -> u64 {
             x
         },
         result => panic!()
+    }
+}
+
+#[cfg(test)]
+mod main_tests {
+    use crate::parser;
+
+    #[test]
+    fn negative_numbers() {
+        assert_eq!(-11, super::eval(&parser::ParseValue::String("-11".to_string())));
+        assert_eq!(-1, super::eval(&parser::ParseValue::String("-1".to_string())));
+        assert_eq!(0, super::eval(&parser::ParseValue::String("-0".to_string())));
+    }
+
+    #[test]
+    fn sum_empty() {
+        assert_eq!(0,
+            super::eval(
+                &parser::ParseValue::List(vec![
+                    parser::ParseValue::String("(".to_string()),
+                    parser::ParseValue::String("+".to_string()),
+                    parser::ParseValue::String(")".to_string()),
+                ])
+            )
+        );
+    }
+
+    #[test]
+    fn mul_empty() {
+        assert_eq!(1,
+            super::eval(
+                &parser::ParseValue::List(vec![
+                    parser::ParseValue::String("(".to_string()),
+                    parser::ParseValue::String("*".to_string()),
+                    parser::ParseValue::String(")".to_string()),
+                ])
+            )
+        );
     }
 }
